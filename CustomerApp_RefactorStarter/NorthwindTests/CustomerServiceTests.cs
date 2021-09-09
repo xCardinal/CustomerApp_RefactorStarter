@@ -91,6 +91,18 @@ namespace NorthwindTests
 
             Assert.That(numberOfCustomersBefore - 1, Is.EqualTo(numberOfCustomersAfter));
 
+            Assert.That(_sut.GetCustomerById("MAND"), Is.Null);
+
+            //Restore the user
+            _sut.CreateCustomer(new Customer
+            {
+                CustomerId = "MAND",
+                ContactName = "Nish Mandal",
+                CompanyName = "Spart Global",
+                City = "Paris"
+            });
+
+
         }
 
         [Test]

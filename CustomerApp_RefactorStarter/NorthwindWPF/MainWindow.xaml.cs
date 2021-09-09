@@ -10,7 +10,7 @@ namespace NorthwindWPF
     /// </summary>
     public partial class MainWindow : Window
     {
-        private CustomerManager _customerManager = new CustomerManager();
+      private CustomerManager _customerManager = new CustomerManager();
         public MainWindow()
         {
             InitializeComponent();
