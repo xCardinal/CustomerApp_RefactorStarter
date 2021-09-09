@@ -14,7 +14,7 @@ namespace NorthwindTests
 {
     public class CustomerManagerShould
     {
-        private CustomerManager _sut;
+        //private CustomerManager _sut;
 
         [Test]
         public void BeAbleToBeConstructed()
@@ -23,7 +23,7 @@ namespace NorthwindTests
             var mockCustomerService = new Mock<ICustomerServices>();
 
             //Act
-            _sut = new CustomerManager(mockCustomerService.Object);
+            var _sut = new CustomerManager(mockCustomerService.Object);
 
             //Assert 
             Assert.That(_sut, Is.InstanceOf<CustomerManager>());
@@ -38,7 +38,7 @@ namespace NorthwindTests
             var originalCustomer = new Customer { CustomerId = "ROCK" };
 
             mockCustomerService.Setup(cs => cs.GetCustomerById("ROCK")).Returns(originalCustomer);
-            _sut = new CustomerManager(mockCustomerService.Object);
+            var _sut = new CustomerManager(mockCustomerService.Object);
 
             //Act
             var result = _sut.Update("ROCK", It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>());
@@ -61,7 +61,7 @@ namespace NorthwindTests
             };
 
             mockCustomerService.Setup(cs => cs.GetCustomerById("ROCK")).Returns(originalCustomer);
-            _sut = new CustomerManager(mockCustomerService.Object);
+            var _sut = new CustomerManager(mockCustomerService.Object);
 
             //Act
             var result = _sut.Update("ROCK", "Rocky Raccoon", "UK", "Chester", null);
@@ -81,7 +81,7 @@ namespace NorthwindTests
             var originalCustomer = new Customer { CustomerId = "ROCK" };
 
             mockCustomerService.Setup(cs => cs.GetCustomerById("ROCK")).Returns((Customer)null);
-            _sut = new CustomerManager(mockCustomerService.Object);
+            var _sut = new CustomerManager(mockCustomerService.Object);
 
             //Act
             var result = _sut.Update("ROCK", It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>());
@@ -105,7 +105,7 @@ namespace NorthwindTests
 
             mockCustomerService.Setup(cs => cs.GetCustomerById("ROCK")).Returns((Customer)null);
 
-            _sut = new CustomerManager(mockCustomerService.Object);
+            var _sut = new CustomerManager(mockCustomerService.Object);
 
             _sut.SelectedCustomer = originalCustomer;
 
@@ -133,7 +133,7 @@ namespace NorthwindTests
             };
 
             mockCustomerService.Setup(cs => cs.GetCustomerById("ROCK")).Returns(originalCustomer);
-            _sut = new CustomerManager(mockCustomerService.Object);
+            var _sut = new CustomerManager(mockCustomerService.Object);
             _sut.SelectedCustomer = originalCustomer;
 
             //Act
@@ -158,7 +158,7 @@ namespace NorthwindTests
             };
 
             mockCustomerService.Setup(cs => cs.GetCustomerById("ROCK")).Returns((Customer)null);
-            _sut = new CustomerManager(mockCustomerService.Object);
+            var _sut = new CustomerManager(mockCustomerService.Object);
             _sut.SelectedCustomer = originalCustomer;
 
             //Act
@@ -168,5 +168,95 @@ namespace NorthwindTests
             Assert.That(_sut.Delete(originalCustomer.CustomerId), Is.False);
         }
 
+        [Test]
+        public void ReturnFalse_WhenUpdateIsCalled_AndADatabaseExceptionIsThrown()
+        {
+            //Arrange
+            var mockCustomerService = new Mock<ICustomerServices>();
+            var originalCustomer = new Customer();
+
+            mockCustomerService.Setup(cs => cs.GetCustomerById(It.IsAny<string>())).Returns(originalCustomer);
+            mockCustomerService.Setup(cs => cs.SaveCustomerChanges()).Throws<DbUpdateConcurrencyException>();
+
+            var _sut = new CustomerManager(mockCustomerService.Object);
+
+            //Act
+            var result = _sut.Update("ROCK", It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>());
+
+            //Assert 
+            Assert.That(result, Is.False);
+        }
+
+        [Test]
+        public void NotChangedTheSelectedCustomer_WhenUpdateIsCalled_AndADAtabaseExceptionIsThrown()
+        {
+            //arrange 
+            var mockCustomerService = new Mock<ICustomerServices>();
+            var originalCustomer = new Customer
+            {
+                CustomerId = "ROCK",
+                ContactName = "Rocky Raccoon",
+                CompanyName = "Zoo UK",
+                City = "Telford"
+            };
+
+            mockCustomerService.Setup(cs => cs.GetCustomerById("ROCK")).Returns(originalCustomer);
+            mockCustomerService.Setup(cs => cs.SaveCustomerChanges()).Throws<DbUpdateConcurrencyException>();
+
+            var _sut = new CustomerManager(mockCustomerService.Object);
+
+            _sut.SelectedCustomer = new Customer
+            {
+                CustomerId = "ROCK",
+                ContactName = "Rocky Raccoon",
+                CompanyName = "Zoo UK",
+                City = "Telford"
+            }; ;
+
+            //Act
+            var result = _sut.Update("ROCK", "Rocky Raccoon", "UK", "Chester", null);
+
+            //Assert - THESE ARE CHECKING THE LOCAL VARIABLES 
+            Assert.That(_sut.SelectedCustomer.ContactName, Is.EqualTo("Rocky Raccoon"));
+            Assert.That(_sut.SelectedCustomer.CompanyName, Is.EqualTo("Zoo UK"));
+            Assert.That(_sut.SelectedCustomer.Country, Is.Null);
+            Assert.That(_sut.SelectedCustomer.City, Is.EqualTo("Telford"));
+        }
+
+
+        [Test]
+        public void CallSaveCustomerChanges_WhenUpdateIsCalled_WithValidId()
+        {
+            //Arrange 
+            var mockCustomerService = new Mock<ICustomerServices>();
+            mockCustomerService.Setup(cs => cs.GetCustomerById("ROCK")).Returns(new Customer());
+
+            var _sut = new CustomerManager(mockCustomerService.Object);
+
+            //Act
+            var result = _sut.Update("ROCK", It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>());
+
+            //Assert
+            mockCustomerService.Verify(cs => cs.SaveCustomerChanges(), Times.Once);
+        }
+
+        [Test]
+        public void LetsSeeWhatHappens_WhenUpdateIsCalled_AndAllInvocationsArentSetUp()
+        {
+            //Arrange 
+            var mockCustomerService = new Mock<ICustomerServices>(MockBehavior.Strict);
+
+            //MockBheavior.Stric means that I need to set up all of the methods that will be called inside of the Mock
+            //, otherwise they don't run.
+
+            mockCustomerService.Setup(cs => cs.GetCustomerById("ROCK")).Returns(new Customer());
+            mockCustomerService.Setup(cs => cs.SaveCustomerChanges());
+            var _sut = new CustomerManager(mockCustomerService.Object);
+
+            //Act
+            var result = _sut.Update("ROCK", It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>());
+
+            Assert.That(result);
+        }
     }
 }
